@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  go-app:
+    build:
+      context: ./go-app
+    ports:
+      - '8085:8085'
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml
+    command: ['--config=/etc/otel/config.yaml']
+    ports:
+      - '8889:8889'
+    depends_on:
+      - go-app
+      - mimir
+
+  mimir:
+    image: grafana/mimir:latest
+    command: ['-config.file=/etc/mimir/config.yaml']
+    volumes:
+      - ./mimir-config.yaml:/etc/mimir/config.yaml
+      - mimir-data:/data
+    ports:
+      - '9009:9009' # HTTP API and UI
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - '3000:3000'
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_USERS_DEFAULT_THEME=light
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - mimir
+
+volumes:
+  mimir-data:
