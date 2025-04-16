@@ -9,3 +9,18 @@ datasources:
     isDefault: true
     version: 1
     editable: true
+  
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://tempo:3200
+    version: 1
+    editable: true
+    uid: tempo
+    jsonData:
+      httpMethod: GET
+      tracesToLogs:
+        datasourceUid: 'Prometheus'
+        tags: ['job', 'instance', 'service_name']
+        mappedTags: [{key: 'service.name', value: 'service'}]

@@ -105,24 +105,24 @@ func NewMetricsProvider(ctx context.Context, cfg Config) (*MetricsProvider, erro
 
 	// Initialize request counter metric
 	requests, err := meter.Int64Counter(
-		"demo_requests_total",
-		metric.WithDescription("Total number of requests received"),
+		"requests_total",
+		metric.WithDescription("Total number of requests"),
 	)
 	if err != nil {
 		log.Printf("Failed to create counter: %v", err)
-		return nil, fmt.Errorf("failed to create counter: %w", err)
+		return nil, fmt.Errorf("failed to create requests counter: %w", err)
 	}
 	mp.Requests = requests
 
 	// Initialize request duration histogram metric
 	requestDuration, err := meter.Float64Histogram(
-		"demo_request_duration_seconds",
-		metric.WithDescription("Duration of HTTP requests in seconds"),
+		"request_duration_seconds",
+		metric.WithDescription("Duration of requests in seconds"),
 		metric.WithUnit("s"),
 	)
 	if err != nil {
 		log.Printf("Failed to create histogram: %v", err)
-		return nil, fmt.Errorf("failed to create histogram: %w", err)
+		return nil, fmt.Errorf("failed to create duration histogram: %w", err)
 	}
 	mp.RequestDuration = requestDuration
 

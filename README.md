@@ -1,33 +1,38 @@
-# Go Metrics Instrumentation and Visualization Demo 📊 📈
+# Go Observability Instrumentation and Visualization Demo 📊 📈 🔍
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## 🔍 Overview
 
-This repository demonstrates two different approaches to instrumenting Go applications with metrics, showing both the modern OpenTelemetry approach and the traditional Prometheus client approach.
+This repository demonstrates a modern approach to instrumenting Go applications with both metrics and traces using OpenTelemetry, showing how to implement a complete observability stack with minimal code changes.
 
 ## 🌟 Features
 
-- ✅ Complete working examples of metrics instrumentation
+- ✅ Complete working examples of metrics and tracing instrumentation
 - ✅ Docker Compose setup for quick deployment
 - ✅ Pre-configured Grafana dashboards
 - ✅ Request count and latency histogram metrics
-- ✅ Side-by-side comparison of different instrumentation approaches
+- ✅ Distributed tracing with detailed span information
+- ✅ Correlation between metrics and traces in a single UI
 
 ## 🔄 Branches
 
-### 🚀 otel-mimir-grafana (default)
+### 🚀 otel-tempo-mimir-grafana (default)
 
-**Modern OpenTelemetry Approach**
+**Modern OpenTelemetry Approach with Complete Observability**
 
-This branch demonstrates the modern approach to metrics using the OpenTelemetry standard:
+This branch demonstrates the modern approach to observability using the OpenTelemetry standard:
 
-- **Instrumentation**: Uses OpenTelemetry SDK for Go
+- **Instrumentation**: Uses OpenTelemetry SDK for Go (metrics and traces)
 - **Collection**: OpenTelemetry Collector
-- **Storage**: Grafana Mimir (Prometheus-compatible)
-- **Visualization**: Grafana dashboards
+- **Metrics Storage**: Grafana Mimir (Prometheus-compatible)
+- **Trace Storage**: Grafana Tempo
+- **Visualization**: Grafana dashboards and Explore
 
-**Data Flow**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
+**Data Flow**:
+
+- **Metrics**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
+- **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
 
 ### 🏛️ prometheus-and-mimir
 
@@ -67,56 +72,59 @@ This branch demonstrates the classic Prometheus instrumentation approach:
 
 3. Access the Grafana dashboard:
 
-   ```
-   http://localhost:3000
-   ```
+   - URL: http://localhost:3000
+   - Default user/pass: admin/admin
 
-   Default credentials:
-
-   ```
-   Username: admin
-   Password: admin
-   ```
-
-4. Generate some test traffic:
+4. Generate some traffic:
 
    ```bash
    ./hit-loop.sh
    ```
 
-   Or create and use this script:
-
-   ```bash
-   #!/bin/bash
-
-   # Create hit-loop.sh file
-   cat > hit-loop.sh << 'EOF'
-   #!/bin/bash
-
-   # Number of requests to send
-   REQUESTS=${1:-100}
-   # Delay between requests in seconds
-   DELAY=${2:-0.1}
-   # URL to hit
-   URL=${3:-"http://localhost:8080/metrics"}
-
-   echo "Sending $REQUESTS requests to $URL with ${DELAY}s delay"
-
-   for i in $(seq 1 $REQUESTS); do
-     echo "Request $i/$REQUESTS"
-     curl -s "$URL" > /dev/null
-     sleep $DELAY
-   done
-
-   echo "Done!"
-   EOF
-
    # Make it executable
+
    chmod +x hit-loop.sh
 
    # Run it
+
+   ```
    ./hit-loop.sh 200 0.2
    ```
+
+## 📊 Exploring Metrics and Traces
+
+### Metrics
+
+Navigate to the pre-configured dashboard in Grafana to see:
+
+- Request counts
+- Request duration percentiles
+- Error rates
+
+### Traces
+
+In Grafana, use the Explore tab and select the Tempo data source to:
+
+1. View all traces
+2. Search by trace ID
+3. Filter by service, duration, or status
+
+### Correlation
+
+From a metrics dashboard, you can:
+
+1. Select a time range with interesting patterns
+2. Click "Explore" to dive into traces from that time period
+3. Find specific traces that explain metric anomalies
+
+## 📚 Code Structure
+
+- `/go-app/metrics` - Metrics instrumentation code
+- `/go-app/tracing` - Tracing instrumentation code
+- `/go-app/handlers` - HTTP handlers with observability
+- `/grafana` - Grafana configuration and dashboards
+- `/tempo-config.yaml` - Tempo configuration
+- `/otel-collector-config.yaml` - OpenTelemetry Collector configuration
 
 ## 📊 Included Metrics
 
@@ -238,26 +246,17 @@ docker-compose up -d
    docker-compose up -d
    ```
 
+- **Go Application**: Simple web service instrumented with OpenTelemetry
+- **OpenTelemetry Collector**: Receives, processes, and exports telemetry data
+- **Mimir**: Stores and queries time-series metrics
+- **Tempo**: Stores and queries distributed traces
+- **Grafana**: Visualizes metrics and traces in a unified UI
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch:
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m 'Add some amazing feature'
-   ```
-4. Push to the branch:
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-5. Open a Pull Request
-
-## 📜 License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 

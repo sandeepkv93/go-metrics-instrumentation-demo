@@ -12,6 +12,7 @@ import (
 
 	"github.com/example/go-app/handlers"
 	"github.com/example/go-app/metrics"
+	"github.com/example/go-app/tracing"
 )
 
 func main() {
@@ -25,8 +26,15 @@ func main() {
 	}
 	defer metricsProvider.Shutdown(context.Background())
 
-	// Initialize HTTP handlers
-	handler := handlers.NewHandler(metricsProvider)
+	// Initialize tracing with default config
+	tracingProvider, err := tracing.NewTracingProvider(ctx, tracing.DefaultConfig())
+	if err != nil {
+		log.Fatalf("Failed to initialize tracing: %v", err)
+	}
+	defer tracingProvider.Shutdown(context.Background())
+
+	// Initialize HTTP handlers with both providers
+	handler := handlers.NewHandler(metricsProvider, tracingProvider)
 
 	// Create server
 	server := &http.Server{
