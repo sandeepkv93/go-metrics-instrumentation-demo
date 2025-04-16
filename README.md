@@ -4,22 +4,39 @@
 
 ## 🔍 Overview
 
-This repository demonstrates a modern approach to instrumenting Go applications with both metrics and traces using OpenTelemetry, showing how to implement a complete observability stack with minimal code changes.
+This repository demonstrates a modern approach to instrumenting Go applications with logs, metrics and traces using OpenTelemetry, showing how to implement a complete observability stack with minimal code changes.
 
 ## 🌟 Features
 
-- ✅ Complete working examples of metrics and tracing instrumentation
+- ✅ Complete working examples of logs, metrics and tracing instrumentation
 - ✅ Docker Compose setup for quick deployment
 - ✅ Pre-configured Grafana dashboards
 - ✅ Request count and latency histogram metrics
 - ✅ Distributed tracing with detailed span information
-- ✅ Correlation between metrics and traces in a single UI
+- ✅ Correlation between metrics, traces and logs in a single UI
 
 ## 🔄 Branches
 
-### 🚀 otel-tempo-mimir-grafana (default)
+### 🚀 otek-loki-tempo-mimir-grafana (default)
 
-**Modern OpenTelemetry Approach with Complete Observability**
+**Modern OpenTelemetry Approach with Complete Observability Stack (Metrics, Traces, Logs)**
+
+- **Instrumentation**: Uses OpenTelemetry SDK for Go (metrics and traces)
+- **Collection**: OpenTelemetry Collector
+- **Metrics Storage**: Grafana Mimir (Prometheus-compatible)
+- **Trace Storage**: Grafana Tempo
+- **Log Aggregation**: Grafana Loki
+- **Visualization**: Grafana dashboards and Explore
+
+**Data Flow**:
+
+- **Metrics**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
+- **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
+- **Logs**: Go App → Zerolog → Promtail → Loki → Grafana
+
+### 🚀 otel-tempo-mimir-grafana
+
+**Modern OpenTelemetry Approach with Traces & Metrics**
 
 This branch demonstrates the modern approach to observability using the OpenTelemetry standard:
 
@@ -175,7 +192,39 @@ All components automatically share context:
 
 ## 🧩 Architecture
 
-### 🚀 OpenTelemetry Stack (default branch)
+### 🚀 OpenTelemetry Stack with Loki, Promtail, Tempo, Mimir, and Grafana (otel-loki-tempo-mimir-grafana branch)
+
+#### Metrics Flow
+
+```
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├─── │  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+```
+
+#### Traces Flow
+
+```
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├─── │  Grafana Tempo   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+```
+
+#### Logs Flow
+
+```
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  Promtail       ├─── │  Grafana Loki    ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+```
+
+### 🚀 OpenTelemetry Stack with Mimir, Tempo, and Grafana (otel-tempo-mimir-grafana branch)
 
 ```
 ┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
