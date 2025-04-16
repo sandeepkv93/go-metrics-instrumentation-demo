@@ -5,84 +5,58 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/metric"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"github.com/example/go-app/handlers"
+	"github.com/example/go-app/metrics"
 )
-
-var (
-	// Global meter
-	meter = otel.GetMeterProvider().Meter("demo-service")
-	// Counter instrument
-	requests metric.Int64Counter
-)
-
-func initMeter() func() {
-	// Create OTLP exporter with custom port
-	exporter, err := otlpmetricgrpc.New(
-		context.Background(),
-		otlpmetricgrpc.WithEndpoint("otel-collector:7317"),
-		otlpmetricgrpc.WithInsecure(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to create exporter: %v", err)
-	}
-
-	// Create resource
-	res := resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceNameKey.String("demo-service"),
-	)
-
-	// Create meter provider
-	provider := sdkmetric.NewMeterProvider(
-		sdkmetric.WithResource(res),
-		sdkmetric.WithReader(
-			sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(1*time.Second)),
-		),
-	)
-
-	// Set global meter provider
-	otel.SetMeterProvider(provider)
-
-	// Create our metrics instruments
-	var err2 error
-	requests, err2 = meter.Int64Counter(
-		"demo_requests_total",
-		metric.WithDescription("Total number of requests received"),
-	)
-	if err2 != nil {
-		log.Fatalf("Failed to create counter: %v", err2)
-	}
-
-	// Return a function to shutdown the exporter when the application exits
-	return func() {
-		if err := provider.Shutdown(context.Background()); err != nil {
-			log.Printf("Error shutting down meter provider: %v", err)
-		}
-	}
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	// Increment the counter
-	requests.Add(context.Background(), 1)
-	fmt.Fprintf(w, "Hello, World!")
-}
 
 func main() {
-	// Initialize OpenTelemetry
-	shutdown := initMeter()
-	defer shutdown()
+	// Create a context for initialization
+	ctx := context.Background()
 
-	http.HandleFunc("/", handler)
-
-	fmt.Println("Serving on :8085...")
-	if err := http.ListenAndServe(":8085", nil); err != nil {
-		log.Fatal(err)
+	// Initialize metrics with default config
+	metricsProvider, err := metrics.NewMetricsProvider(ctx, metrics.DefaultConfig())
+	if err != nil {
+		log.Fatalf("Failed to initialize metrics: %v", err)
 	}
+	defer metricsProvider.Shutdown(context.Background())
+
+	// Initialize HTTP handlers
+	handler := handlers.NewHandler(metricsProvider)
+
+	// Create server
+	server := &http.Server{
+		Addr:    ":8085",
+		Handler: handler.SetupRoutes(),
+	}
+
+	// Handle graceful shutdown
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		fmt.Println("Server running on :8085...")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Wait for termination signal
+	<-done
+
+	// Graceful shutdown
+	log.Println("Server shutting down...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server exited gracefully")
 }
