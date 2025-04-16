@@ -1,11 +1,10 @@
 receivers:
-  prometheus:
-    config:
-      scrape_configs:
-        - job_name: 'go-app'
-          scrape_interval: 5s  # More frequent scraping
-          static_configs:
-            - targets: ['go-app:8085']
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:7317
+      http:
+        endpoint: 0.0.0.0:7318
 
 processors:
   batch:
@@ -23,7 +22,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [prometheus]
+      receivers: [otlp]
       processors: [batch]
       exporters: [prometheusremotewrite, debug]
   telemetry:

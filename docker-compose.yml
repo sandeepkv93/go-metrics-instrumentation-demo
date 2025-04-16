@@ -13,7 +13,8 @@ services:
       - ./otel-collector-config.yaml:/etc/otel/config.yaml
     command: ['--config=/etc/otel/config.yaml']
     ports:
-      - '8889:8889'
+      - '7317:7317' # Custom OTLP gRPC
+      - '7318:7318' # Custom OTLP HTTP
     depends_on:
       - go-app
       - mimir
