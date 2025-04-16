@@ -60,8 +60,8 @@ This branch demonstrates the classic Prometheus instrumentation approach:
 1. Clone the repository:
 
    ```bash
-   git clone git@github.com:sandeepkv93/go-metrics-instrumentation-demo.git
-   cd go-metrics-instrumentation-demo
+   git clone git@github.com:sandeepkv93/go-observability-demo.git
+   cd go-observability-demo
    ```
 
 2. Start the stack:
