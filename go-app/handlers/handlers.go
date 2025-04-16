@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
 
+	"github.com/example/go-app/logging"
 	"github.com/example/go-app/metrics"
 	"github.com/example/go-app/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -20,13 +20,15 @@ import (
 type Handler struct {
 	metrics *metrics.MetricsProvider
 	tracing *tracing.TracingProvider
+	logging *logging.LogProvider
 }
 
 // NewHandler creates a new handler with dependencies
-func NewHandler(metrics *metrics.MetricsProvider, tracing *tracing.TracingProvider) *Handler {
+func NewHandler(metrics *metrics.MetricsProvider, tracing *tracing.TracingProvider, logging *logging.LogProvider) *Handler {
 	return &Handler{
 		metrics: metrics,
 		tracing: tracing,
+		logging: logging,
 	}
 }
 
@@ -35,9 +37,18 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	// Context is already set up by middleware
 	ctx := r.Context()
 
+	// Get logger with trace context
+	logger := h.logging.ContextLogger(ctx)
+
 	// Start a new span for the handler logic
 	ctx, span := h.tracing.Tracer().Start(ctx, "home_handler_logic")
 	defer span.End()
+
+	logger.Info().
+		Str("http.method", r.Method).
+		Str("http.url", r.URL.String()).
+		Str("http.user_agent", r.UserAgent()).
+		Msg("Processing home request")
 
 	// Add some attributes to the span
 	span.SetAttributes(
@@ -58,6 +69,7 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 
 	// Simulate validation logic
 	if err := h.validateRequest(ctx, r); err != nil {
+		logger.Error().Err(err).Msg("Request validation failed")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		span.SetStatus(codes.Error, err.Error())
 		span.AddEvent("request_validation_failed")
@@ -118,13 +130,17 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	span.SetAttributes(attribute.Int64("response.time_ms", duration.Milliseconds()))
 	span.AddEvent("request_completed")
 
-	log.Printf("Starting home handler with trace ID: %s", span.SpanContext().TraceID().String())
+	logger.Info().
+		Dur("duration_ms", duration).
+		Msg("Request completed successfully")
 }
 
 // validateRequest simulates request validation
 func (h *Handler) validateRequest(ctx context.Context, r *http.Request) error {
 	ctx, span := h.tracing.Tracer().Start(ctx, "validate_request")
 	defer span.End()
+
+	logger := h.logging.ContextLogger(ctx)
 
 	span.SetAttributes(attribute.String("http.method", r.Method))
 
@@ -139,8 +155,12 @@ func (h *Handler) validateRequest(ctx context.Context, r *http.Request) error {
 	}
 
 	span.SetStatus(codes.Ok, "")
-	log.Printf("Starting %s span with trace ID: %s",
-		"validate_request", span.SpanContext().TraceID().String())
+
+	logger.Info().
+		Str("http.method", r.Method).
+		Str("http.url", r.URL.String()).
+		Str("http.user_agent", r.UserAgent()).
+		Msg("Request validation completed successfully")
 	return nil
 }
 
@@ -148,6 +168,8 @@ func (h *Handler) validateRequest(ctx context.Context, r *http.Request) error {
 func (h *Handler) fetchUserData(ctx context.Context) (string, error) {
 	ctx, span := h.tracing.Tracer().Start(ctx, "fetch_user_data")
 	defer span.End()
+
+	logger := h.logging.ContextLogger(ctx)
 
 	span.SetAttributes(
 		attribute.String("db.system", "postgres"),
@@ -169,8 +191,10 @@ func (h *Handler) fetchUserData(ctx context.Context) (string, error) {
 	span.SetAttributes(attribute.String("user.id", userData))
 	span.SetStatus(codes.Ok, "")
 
-	log.Printf("Starting %s span with trace ID: %s",
-		"fetch_user_data", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("db.system", "postgres").
+		Str("db.operation", "SELECT").
+		Msg("User data fetched successfully")
 	return userData, nil
 }
 
@@ -178,6 +202,8 @@ func (h *Handler) fetchUserData(ctx context.Context) (string, error) {
 func (h *Handler) fetchWeatherData(ctx context.Context) (string, error) {
 	ctx, span := h.tracing.Tracer().Start(ctx, "fetch_weather_data")
 	defer span.End()
+
+	logger := h.logging.ContextLogger(ctx)
 
 	span.SetAttributes(
 		attribute.String("http.url", "https://api.weather.example.com/current"),
@@ -200,8 +226,10 @@ func (h *Handler) fetchWeatherData(ctx context.Context) (string, error) {
 	span.SetAttributes(attribute.String("weather.condition", weather))
 	span.SetStatus(codes.Ok, "")
 
-	log.Printf("Starting %s span with trace ID: %s",
-		"fetch_weather_data", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("http.method", "GET").
+		Str("http.url", "https://api.weather.example.com/current").
+		Msg("Weather data fetched successfully")
 	return weather, nil
 }
 
@@ -209,6 +237,8 @@ func (h *Handler) fetchWeatherData(ctx context.Context) (string, error) {
 func (h *Handler) processBusinessLogic(ctx context.Context, userData, weatherData string) (string, error) {
 	ctx, span := h.tracing.Tracer().Start(ctx, "process_business_logic")
 	defer span.End()
+
+	logger := h.logging.ContextLogger(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.data", userData),
@@ -229,8 +259,9 @@ func (h *Handler) processBusinessLogic(ctx context.Context, userData, weatherDat
 	}
 
 	span.SetStatus(codes.Ok, "")
-	log.Printf("Starting %s span with trace ID: %s",
-		"process_business_logic", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("process_business_logic", span.SpanContext().TraceID().String()).
+		Msg("Business logic processed successfully")
 	return result, nil
 }
 
@@ -239,14 +270,17 @@ func (h *Handler) processStep1(ctx context.Context, userData string) (string, er
 	ctx, span := h.tracing.Tracer().Start(ctx, "process_step1")
 	defer span.End()
 
+	logger := h.logging.ContextLogger(ctx)
+
 	// Simulate work
 	time.Sleep(time.Duration(20+rand.Intn(40)) * time.Millisecond)
 
 	result := fmt.Sprintf("processed-%s", userData)
 	span.SetAttributes(attribute.String("step1.result", result))
 
-	log.Printf("Starting %s span with trace ID: %s",
-		"process_step1", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("process_step1", span.SpanContext().TraceID().String()).
+		Msg("Step 1 processed successfully")
 	return result, nil
 }
 
@@ -254,6 +288,8 @@ func (h *Handler) processStep1(ctx context.Context, userData string) (string, er
 func (h *Handler) processStep2(ctx context.Context, step1Result, weatherData string) (string, error) {
 	ctx, span := h.tracing.Tracer().Start(ctx, "process_step2")
 	defer span.End()
+
+	logger := h.logging.ContextLogger(ctx)
 
 	// Simulate work
 	time.Sleep(time.Duration(30+rand.Intn(50)) * time.Millisecond)
@@ -269,8 +305,9 @@ func (h *Handler) processStep2(ctx context.Context, step1Result, weatherData str
 	result := fmt.Sprintf("%s-with-%s", step1Result, weatherData)
 	span.SetAttributes(attribute.String("step2.result", result))
 
-	log.Printf("Starting %s span with trace ID: %s",
-		"process_step2", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("process_step2", span.SpanContext().TraceID().String()).
+		Msg("Step 2 processed successfully")
 	return result, nil
 }
 
@@ -278,6 +315,8 @@ func (h *Handler) processStep2(ctx context.Context, step1Result, weatherData str
 func (h *Handler) updateCache(ctx context.Context, data string) error {
 	ctx, span := h.tracing.Tracer().Start(ctx, "update_cache")
 	defer span.End()
+
+	logger := h.logging.ContextLogger(ctx)
 
 	span.SetAttributes(
 		attribute.String("cache.system", "redis"),
@@ -297,8 +336,11 @@ func (h *Handler) updateCache(ctx context.Context, data string) error {
 	}
 
 	span.SetStatus(codes.Ok, "")
-	log.Printf("Starting %s span with trace ID: %s",
-		"update_cache", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("cache.system", "redis").
+		Str("cache.operation", "SET").
+		Str("cache.key", "result").
+		Msg("Cache updated successfully")
 	return nil
 }
 
@@ -307,14 +349,17 @@ func (h *Handler) renderResponse(ctx context.Context, data string) (string, erro
 	ctx, span := h.tracing.Tracer().Start(ctx, "render_response")
 	defer span.End()
 
+	logger := h.logging.ContextLogger(ctx)
+
 	// Simulate rendering work
 	time.Sleep(time.Duration(10+rand.Intn(20)) * time.Millisecond)
 
 	response := fmt.Sprintf("Hello, World! Result: %s", data)
 	span.SetAttributes(attribute.Int("response.size", len(response)))
 
-	log.Printf("Starting %s span with trace ID: %s",
-		"render_response", span.SpanContext().TraceID().String())
+	logger.Info().
+		Str("render_response", span.SpanContext().TraceID().String()).
+		Msg("Response rendered successfully")
 	return response, nil
 }
 

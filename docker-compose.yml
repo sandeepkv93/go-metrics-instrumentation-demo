@@ -6,6 +6,8 @@ services:
       context: ./go-app
     ports:
       - '8085:8085'
+    volumes:
+      - app_logs:/var/log/go-app
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -28,22 +30,42 @@ services:
     ports:
       - '9009:9009' # HTTP API and UI
 
+  loki:
+    image: grafana/loki:latest
+    volumes:
+      - ./configs/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    ports:
+      - '3100:3100'
+    command: -config.file=/etc/loki/local-config.yaml
+    # Use root user for now to avoid permission issues
+    user: '0:0'
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./configs/promtail/config.yml:/etc/promtail/config.yml
+      - app_logs:/var/log/app
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
   grafana:
-    image: grafana/grafana:9.5.1 # Specify version explicitly
+    image: grafana/grafana:9.5.1
     ports:
       - '3000:3000'
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin # Give anonymous users admin rights
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_USERS_DEFAULT_THEME=light
-      - GF_FEATURE_TOGGLES_ENABLE=exploreMixedDatasources # Enable specific features
+      - GF_FEATURE_TOGGLES_ENABLE=exploreMixedDatasources
       - GF_EXPLORE_ENABLED=true
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
-      # Add custom.ini to force enable Explore
       - ./grafana/custom.ini:/etc/grafana/custom.ini
     depends_on:
       - mimir
+      - loki
 
   tempo:
     image: grafana/tempo:latest
@@ -52,12 +74,14 @@ services:
       - ./tempo-config.yaml:/etc/tempo.yaml
       - tempo-data:/tmp/tempo
     ports:
-      - '9411:9411' # OTLP gRPC
-      - '9412:9412' # OTLP HTTP
-      - '3200:3200' # Tempo API
+      - '9411:9411'
+      - '9412:9412'
+      - '3200:3200'
     depends_on:
       - otel-collector
 
 volumes:
   tempo-data:
   mimir-data:
+  loki-data:
+  app_logs:

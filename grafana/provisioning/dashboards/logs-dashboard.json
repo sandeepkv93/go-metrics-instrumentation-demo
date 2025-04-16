@@ -1,0 +1,108 @@
+{
+    "id": null,
+    "title": "Application Logs",
+    "tags": [
+        "demo",
+        "logs"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1,
+    "panels": [
+        {
+            "type": "logs",
+            "title": "Application Logs",
+            "datasource": "Loki",
+            "targets": [
+                {
+                    "expr": "{job=\"go-app\"}",
+                    "refId": "A"
+                }
+            ],
+            "gridPos": {
+                "h": 12,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "type": "stat",
+            "title": "Error Count",
+            "datasource": "Loki",
+            "targets": [
+                {
+                    "expr": "count_over_time({job=\"go-app\"} |= \"error\"[1h])",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "text": {}
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 1
+                            }
+                        ]
+                    }
+                }
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 12
+            }
+        },
+        {
+            "type": "timeseries",
+            "title": "Log Volume",
+            "datasource": "Loki",
+            "targets": [
+                {
+                    "expr": "sum(count_over_time({job=\"go-app\"}[1m]))",
+                    "refId": "A",
+                    "legendFormat": "Log Entries"
+                }
+            ],
+            "options": {
+                "legend": {
+                    "calcs": []
+                }
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "linear",
+                        "barAlignment": 0,
+                        "lineWidth": 1,
+                        "fillOpacity": 10
+                    }
+                }
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 12
+            }
+        }
+    ]
+}

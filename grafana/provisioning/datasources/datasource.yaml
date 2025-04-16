@@ -21,6 +21,16 @@ datasources:
     jsonData:
       httpMethod: GET
       tracesToLogs:
-        datasourceUid: 'Prometheus'
+        datasourceUid: 'loki'
         tags: ['job', 'instance', 'service_name']
         mappedTags: [{key: 'service.name', value: 'service'}]
+  
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://loki:3100
+    version: 1
+    isDefault: false
+    jsonData:
+      maxLines: 1000
