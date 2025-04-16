@@ -1,7 +1,47 @@
+# This is a complete configuration to deploy Loki backed by the filesystem.
+# The index will be shipped to the storage via tsdb-shipper.
+
 auth_enabled: false
+
+limits_config:
+  allow_structured_metadata: true
+  volume_enabled: true
+  discover_service_name:
+  - service
+  - service_name
+  - service.name
+  - app
 
 server:
   http_listen_port: 3100
+
+common:
+  ring:
+    instance_addr: 0.0.0.0
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+  path_prefix: /tmp/loki
+
+schema_config:
+  configs:
+  - from: 2020-05-15
+    store: tsdb
+    object_store: filesystem
+    schema: v13
+    index:
+      prefix: index_
+      period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /tmp/loki/index
+    cache_location: /tmp/loki/index_cache
+  filesystem:
+    directory: /tmp/loki/chunks
+
+pattern_ingester:
+  enabled: true
 
 ingester:
   lifecycler:
@@ -13,35 +53,18 @@ ingester:
     final_sleep: 0s
   chunk_idle_period: 5m
   chunk_retain_period: 30s
-  wal:
-    enabled: true
-    dir: /loki/wal
-
-schema_config:
-  configs:
-    - from: 2020-10-24
-      store: boltdb-shipper
-      object_store: filesystem
-      schema: v11
-      index:
-        prefix: index_
-        period: 24h
-
-storage_config:
-  boltdb_shipper:
-    active_index_directory: /loki/boltdb-shipper-active
-    cache_location: /loki/boltdb-shipper-cache
-    cache_ttl: 24h
-  filesystem:
-    directory: /loki/chunks
-
-limits_config:
-  reject_old_samples: true
-  reject_old_samples_max_age: 168h
-  allow_structured_metadata: false
 
 compactor:
   working_directory: /loki/compactor
 
 ruler:
+  storage:
+    type: local
+    local:
+      directory: /etc/loki/rules
+  rule_path: /tmp/loki/rules-temp
   alertmanager_url: http://localhost:9093
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true

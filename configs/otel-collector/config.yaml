@@ -5,11 +5,30 @@ receivers:
         endpoint: 0.0.0.0:7317
       http:
         endpoint: 0.0.0.0:7318
+  filelog:
+    include: [/var/log/go-app/*.log]
+    start_at: beginning
+    include_file_path: false
+    operators:
+      # Parse JSON without trying to extract fields
+      - type: json_parser
 
 processors:
   batch:
     send_batch_size: 10000
     timeout: 5s
+  attributes:
+    actions:
+      # Add static attributes through the attributes processor
+      - key: service.name
+        from_attribute: service
+        action: upsert
+      - key: app
+        value: "observability-demo"
+        action: insert
+      - key: job
+        value: "go-app"
+        action: insert
 
 exporters:
   prometheusremotewrite:
@@ -20,7 +39,11 @@ exporters:
   debug:
     verbosity: detailed
   otlp/tempo:
-    endpoint: "tempo:9411"  # Changed from 4317 to 9411
+    endpoint: "tempo:9411"
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp"
     tls:
       insecure: true
 
@@ -34,6 +57,10 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/tempo, debug]
+    logs:
+      receivers: [filelog]
+      processors: [batch, attributes]
+      exporters: [otlphttp/loki, debug]
   telemetry:
     logs:
       level: "debug"
