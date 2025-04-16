@@ -16,6 +16,7 @@ exporters:
     endpoint: "http://mimir:9009/api/v1/push"
     tls:
       insecure: true
+    namespace: "demo"
   debug:
     verbosity: detailed
 
@@ -28,3 +29,5 @@ service:
   telemetry:
     logs:
       level: "debug"
+    metrics:
+      level: "detailed"
