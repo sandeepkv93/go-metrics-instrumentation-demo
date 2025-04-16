@@ -12,7 +12,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel/config.yaml
+      - ./configs/otel-collector/config.yaml:/etc/otel/config.yaml
     command: ['--config=/etc/otel/config.yaml']
     ports:
       - '7317:7317' # Custom OTLP gRPC
@@ -25,7 +25,7 @@ services:
     image: grafana/mimir:latest
     command: ['-config.file=/etc/mimir/config.yaml']
     volumes:
-      - ./mimir-config.yaml:/etc/mimir/config.yaml
+      - ./configs/mimir/mimir-config.yaml:/etc/mimir/config.yaml
       - mimir-data:/data
     ports:
       - '9009:9009' # HTTP API and UI
@@ -61,8 +61,8 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=exploreMixedDatasources
       - GF_EXPLORE_ENABLED=true
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/custom.ini:/etc/grafana/custom.ini
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning
+      - ./configs/grafana/custom.ini:/etc/grafana/custom.ini
     depends_on:
       - mimir
       - loki
@@ -71,7 +71,7 @@ services:
     image: grafana/tempo:latest
     command: ['-config.file=/etc/tempo.yaml']
     volumes:
-      - ./tempo-config.yaml:/etc/tempo.yaml
+      - ./configs/tempo/config.yaml:/etc/tempo.yaml
       - tempo-data:/tmp/tempo
     ports:
       - '9411:9411'
@@ -81,7 +81,7 @@ services:
       - otel-collector
 
 volumes:
-  tempo-data:
+  app_logs:
   mimir-data:
   loki-data:
-  app_logs:
+  tempo-data:

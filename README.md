@@ -134,12 +134,28 @@ All components automatically share context:
 
 ## 📚 Code Structure
 
+### Application Code
+
 - `/go-app/metrics` - Metrics instrumentation code
 - `/go-app/tracing` - Tracing instrumentation code
+- `/go-app/logging` - Logging instrumentation with zerolog
 - `/go-app/handlers` - HTTP handlers with observability
-- `/grafana` - Grafana configuration and dashboards
-- `/tempo-config.yaml` - Tempo configuration
-- `/otel-collector-config.yaml` - OpenTelemetry Collector configuration
+
+### Configuration
+
+- `/configs` - All configuration files for observability tools
+  - `/configs/grafana` - Grafana configuration and dashboards
+    - `/configs/grafana/provisioning` - Datasources and dashboards
+  - `/configs/loki` - Loki log aggregation configuration
+  - `/configs/promtail` - Promtail log collection configuration
+  - `/configs/mimir` - Mimir metrics configuration
+  - `/configs/tempo` - Tempo tracing configuration
+  - `/configs/otel-collector` - OpenTelemetry Collector configuration
+
+### Infrastructure
+
+- `docker-compose.yml` - Container orchestration
+- `hit-loop.sh` - Test script for generating traffic
 
 ## 📊 Included Telemetry
 
