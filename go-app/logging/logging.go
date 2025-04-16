@@ -100,32 +100,28 @@ func (lp *LogProvider) Logger() zerolog.Logger {
 }
 
 // ContextLogger returns a logger with context values
-func (lp *LogProvider) ContextLogger(ctx context.Context) *zerolog.Logger {
-	// Extract trace information if available in context
+func (lp *LogProvider) ContextLogger(ctx context.Context) zerolog.Logger {
 	traceID := TraceIDFromContext(ctx)
 	spanID := SpanIDFromContext(ctx)
 
-	logger := lp.logger.With().
-		Str("trace_id", traceID).
-		Str("span_id", spanID).
-		Logger()
+	logger := lp.logger
 
-	return &logger
+	// Add trace context if available
+	if traceID != "" {
+		// IMPORTANT: Use "trace_id" exactly as this is what Grafana expects
+		logger = logger.With().
+			Str("trace_id", traceID).
+			Str("span_id", spanID).
+			Logger()
+	}
+
+	return logger
 }
 
 // ShutDown properly flushes and closes log resources
 func (lp *LogProvider) Shutdown(ctx context.Context) error {
 	// No specific shutdown needed for zerolog
 	return nil
-}
-
-// TraceIDFromContext extracts trace ID from OpenTelemetry context
-func TraceIDFromContext(ctx context.Context) string {
-	spanCtx := trace.SpanContextFromContext(ctx)
-	if !spanCtx.IsValid() {
-		return ""
-	}
-	return spanCtx.TraceID().String()
 }
 
 // SpanIDFromContext extracts span ID from OpenTelemetry context
@@ -135,4 +131,14 @@ func SpanIDFromContext(ctx context.Context) string {
 		return ""
 	}
 	return spanCtx.SpanID().String()
+}
+
+// TraceIDFromContext extracts trace ID from OpenTelemetry context
+func TraceIDFromContext(ctx context.Context) string {
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if !spanCtx.IsValid() {
+		return ""
+	}
+	// Format exactly as Tempo expects - lowercase hex without dashes
+	return spanCtx.TraceID().String()
 }

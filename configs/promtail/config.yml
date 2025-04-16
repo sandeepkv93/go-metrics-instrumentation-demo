@@ -17,3 +17,15 @@ scrape_configs:
           job: go-app
           app: observability-demo
           __path__: /var/log/app/*.log
+    
+    # Add pipeline stages to extract labels from JSON logs
+    pipeline_stages:
+      - json:
+          expressions:
+            service: service
+            level: level
+      
+      # Set extracted values as labels
+      - labels:
+          service:
+          level:
