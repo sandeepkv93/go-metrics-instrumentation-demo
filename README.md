@@ -109,13 +109,28 @@ In Grafana, use the Explore tab and select the Tempo data source to:
 2. Search by trace ID
 3. Filter by service, duration, or status
 
+### Logs
+
+Use Grafana's Explore tab with the Loki data source to:
+
+1. View all logs with `{job="go-app"}`
+2. Filter by service with `{service="demo-service"}`
+3. Filter by log level with `{job="go-app", level="error"}`
+4. Search for specific text with `{job="go-app"} |= "error"`
+
 ### Correlation
 
-From a metrics dashboard, you can:
+This demo features full correlation between metrics, traces, and logs:
 
-1. Select a time range with interesting patterns
-2. Click "Explore" to dive into traces from that time period
-3. Find specific traces that explain metric anomalies
+1. From a metric dashboard, select a time range and click "Explore" to find traces
+2. From a trace view, click "Logs for this span" to see relevant logs
+3. From logs, click on a trace ID to jump to the corresponding trace
+
+All components automatically share context:
+
+- Trace IDs are included in logs via OpenTelemetry context propagation
+- Service names are consistently used across all telemetry types
+- Timestamps are synchronized for temporal correlation
 
 ## 📚 Code Structure
 
@@ -126,13 +141,21 @@ From a metrics dashboard, you can:
 - `/tempo-config.yaml` - Tempo configuration
 - `/otel-collector-config.yaml` - OpenTelemetry Collector configuration
 
-## 📊 Included Metrics
+## 📊 Included Telemetry
+
+### Metrics
 
 - **Request Count**: Total number of requests
 - **Request Duration**: Histogram of request durations
 - **Request Duration Percentiles**: p50, p90, p95, and p99 latency
 - **Request Rate**: Requests per second
 - **Average Latency**: Average request duration
+
+### Logs
+
+- **Structured JSON Logs**: All logs are in structured JSON format
+- **Context-Enriched**: Logs include trace IDs, span IDs, and service name
+- **Level-Based Filtering**: Support for filtering by log level (info, error, etc.)
 
 ## 🧩 Architecture
 
@@ -160,9 +183,29 @@ From a metrics dashboard, you can:
 
 - **docker-compose.yml**: Docker Compose configuration
 - **otel-collector-config.yaml**: OpenTelemetry Collector configuration
+- **configs/loki/loki-config.yml**: Loki configuration
+- **configs/promtail/config.yml**: Promtail configuration for log collection
 - **mimir-config.yaml**: Mimir configuration
 - **grafana/provisioning/**: Grafana provisioning files
 - **hit-loop.sh**: Script to generate traffic
+
+## 🔍 Exploring in Grafana
+
+Use Grafana's Explore feature to explore available telemetry:
+
+1. Open Grafana (http://localhost:3000)
+2. Click on the Explore icon in the left sidebar
+3. Select a data source (Prometheus for metrics, Tempo for traces, Loki for logs)
+4. Run queries and filter as needed
+
+### Trace-to-Log Correlation
+
+To follow a request through traces and logs:
+
+1. Find a trace in Tempo
+2. Click on any span
+3. Click the "Logs for this span" button to see correlated logs
+4. Alternatively, search logs with a trace ID: `{job="go-app"} |~ "trace_id=<trace-id>"`
 
 ## 🔍 Exploring Metrics
 
