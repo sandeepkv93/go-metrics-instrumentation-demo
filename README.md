@@ -1,23 +1,23 @@
-# Go Observability Instrumentation and Visualization Demo 📊 📈 🔍
+# Go Observability Instrumentation and Visualization Demo
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## 🔍 Overview
+## Overview
 
 This repository demonstrates a modern approach to instrumenting Go applications with logs, metrics and traces using OpenTelemetry, showing how to implement a complete observability stack with minimal code changes.
 
-## 🌟 Features
+## Features
 
-- ✅ Complete working examples of logs, metrics and tracing instrumentation
-- ✅ Docker Compose setup for quick deployment
-- ✅ Pre-configured Grafana dashboards
-- ✅ Request count and latency histogram metrics
-- ✅ Distributed tracing with detailed span information
-- ✅ Correlation between metrics, traces and logs in a single UI
+- Complete working examples of logs, metrics and tracing instrumentation
+- Docker Compose setup for quick deployment
+- Pre-configured Grafana dashboards
+- Request count and latency histogram metrics
+- Distributed tracing with detailed span information
+- Correlation between metrics, traces and logs in a single UI
 
-## 🔄 Branches
+## Branches
 
-### 🚀 otek-loki-tempo-mimir-grafana (default)
+### otek-loki-tempo-mimir-grafana (default)
 
 **Modern OpenTelemetry Approach with Complete Observability Stack (Metrics, Traces, Logs)**
 
@@ -34,7 +34,7 @@ This repository demonstrates a modern approach to instrumenting Go applications 
 - **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
 - **Logs**: Go App → Zerolog → Promtail → Loki → Grafana
 
-### 🚀 otel-tempo-mimir-grafana
+### otel-tempo-mimir-grafana
 
 **Modern OpenTelemetry Approach with Traces & Metrics**
 
@@ -51,7 +51,7 @@ This branch demonstrates the modern approach to observability using the OpenTele
 - **Metrics**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
 - **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
 
-### 🏛️ prometheus-and-mimir
+### prometheus-and-mimir
 
 **Traditional Prometheus Approach**
 
@@ -64,13 +64,13 @@ This branch demonstrates the classic Prometheus instrumentation approach:
 
 **Data Flow**: Go App → Prometheus client → Prometheus → Mimir → Grafana
 
-## 🛠️ Setup
+## Setup
 
 ### Prerequisites
 
-- 🐳 Docker and Docker Compose
-- 🧪 Git
-- 🔄 curl (for testing)
+- Docker and Docker Compose
+- Git
+- curl (for testing)
 
 ### Quick Start
 
@@ -108,7 +108,7 @@ This branch demonstrates the classic Prometheus instrumentation approach:
    ./hit-loop.sh 200 0.2
    ```
 
-## 📊 Exploring Metrics and Traces
+## Exploring Metrics and Traces
 
 ### Metrics
 
@@ -149,7 +149,7 @@ All components automatically share context:
 - Service names are consistently used across all telemetry types
 - Timestamps are synchronized for temporal correlation
 
-## 📚 Code Structure
+## Code Structure
 
 ### Application Code
 
@@ -174,7 +174,7 @@ All components automatically share context:
 - `docker-compose.yml` - Container orchestration
 - `hit-loop.sh` - Test script for generating traffic
 
-## 📊 Included Telemetry
+## Included Telemetry
 
 ### Metrics
 
@@ -190,9 +190,9 @@ All components automatically share context:
 - **Context-Enriched**: Logs include trace IDs, span IDs, and service name
 - **Level-Based Filtering**: Support for filtering by log level (info, error, etc.)
 
-## 🧩 Architecture
+## Architecture
 
-### 🚀 OpenTelemetry Stack with Loki, Promtail, Tempo, Mimir, and Grafana (otel-loki-tempo-mimir-grafana branch)
+### OpenTelemetry Stack with Loki, Promtail, Tempo, Mimir, and Grafana (otel-loki-tempo-mimir-grafana branch)
 
 #### Metrics Flow
 
@@ -224,7 +224,7 @@ All components automatically share context:
 └────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
-### 🚀 OpenTelemetry Stack with Mimir, Tempo, and Grafana (otel-tempo-mimir-grafana branch)
+### OpenTelemetry Stack with Mimir, Tempo, and Grafana (otel-tempo-mimir-grafana branch)
 
 ```
 ┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
@@ -234,7 +234,7 @@ All components automatically share context:
 └────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
-### 🏛️ Prometheus Stack (prometheus-and-mimir branch)
+### Prometheus Stack (prometheus-and-mimir branch)
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌──────────────────┐    ┌─────────┐
@@ -244,7 +244,7 @@ All components automatically share context:
 └─────────────┘    └─────────────┘    └──────────────────┘    └─────────┘
 ```
 
-## 📝 Configuration Files
+## Configuration Files
 
 - **docker-compose.yml**: Docker Compose configuration
 - **otel-collector-config.yaml**: OpenTelemetry Collector configuration
@@ -254,7 +254,7 @@ All components automatically share context:
 - **grafana/provisioning/**: Grafana provisioning files
 - **hit-loop.sh**: Script to generate traffic
 
-## 🔍 Exploring in Grafana
+## Exploring in Grafana
 
 Use Grafana's Explore feature to explore available telemetry:
 
@@ -272,7 +272,7 @@ To follow a request through traces and logs:
 3. Click the "Logs for this span" button to see correlated logs
 4. Alternatively, search logs with a trace ID: `{job="go-app"} |~ "trace_id=<trace-id>"`
 
-## 🔍 Exploring Metrics
+## Exploring Metrics
 
 Use Grafana's Explore feature to explore all available metrics:
 
@@ -283,7 +283,7 @@ Use Grafana's Explore feature to explore all available metrics:
    - `rate(demo_requests_total[1m])`
    - `histogram_quantile(0.95, sum(rate(demo_request_duration_seconds_bucket[1m])) by (le))`
 
-## 📊 Example PromQL Queries
+## Example PromQL Queries
 
 Here are some useful queries for analyzing your application:
 
@@ -301,13 +301,13 @@ rate(demo_request_errors_total[1m])
 sum(rate(demo_requests_total[1m])) by (endpoint)
 ```
 
-## 🤔 Why Two Approaches?
+## Why Two Approaches?
 
 - **OpenTelemetry**: Newer standard that provides a unified approach for metrics, traces, and logs
 - **Prometheus**: Well-established standard for metrics with a large ecosystem
 - **Comparison**: Helps you decide which approach fits your needs better
 
-## 🔄 Switching Branches
+## Switching Branches
 
 To switch between the two implementations:
 
@@ -322,7 +322,7 @@ git checkout prometheus-and-mimir  # or otel-mimir-grafana
 docker-compose up -d
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -360,15 +360,15 @@ docker-compose up -d
 - **Tempo**: Stores and queries distributed traces
 - **Grafana**: Visualizes metrics and traces in a unified UI
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - OpenTelemetry community
 - Prometheus community
@@ -376,4 +376,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-Made with ❤️ by [Sandeep Vishnu](https://github.com/sandeepkv93)
+Made by [Sandeep Vishnu](https://github.com/sandeepkv93)
