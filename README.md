@@ -17,52 +17,22 @@ This repository demonstrates a modern approach to instrumenting Go applications 
 
 ## Branches
 
-### otek-loki-tempo-mimir-grafana (default)
+### main (default)
 
-**Modern OpenTelemetry Approach with Complete Observability Stack (Metrics, Traces, Logs)**
-
-- **Instrumentation**: Uses OpenTelemetry SDK for Go (metrics and traces)
-- **Collection**: OpenTelemetry Collector
-- **Metrics Storage**: Grafana Mimir (Prometheus-compatible)
-- **Trace Storage**: Grafana Tempo
-- **Log Aggregation**: Grafana Loki
-- **Visualization**: Grafana dashboards and Explore
-
-**Data Flow**:
+**Current primary branch: complete tri-signal OpenTelemetry stack (metrics, traces, logs)**
 
 - **Metrics**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
 - **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
 - **Logs**: Go App → slog/OTel Log SDK → OTel Collector → Loki → Grafana
 
-### otel-tempo-mimir-grafana
+### Other branches
 
-**Modern OpenTelemetry Approach with Traces & Metrics**
-
-This branch demonstrates the modern approach to observability using the OpenTelemetry standard:
-
-- **Instrumentation**: Uses OpenTelemetry SDK for Go (metrics and traces)
-- **Collection**: OpenTelemetry Collector
-- **Metrics Storage**: Grafana Mimir (Prometheus-compatible)
-- **Trace Storage**: Grafana Tempo
-- **Visualization**: Grafana dashboards and Explore
-
-**Data Flow**:
-
-- **Metrics**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
-- **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
-
-### prometheus-and-mimir
-
-**Traditional Prometheus Approach**
-
-This branch demonstrates the classic Prometheus instrumentation approach:
-
-- **Instrumentation**: Prometheus client library for Go
-- **Collection**: Direct scraping by Prometheus
-- **Storage**: Grafana Mimir
-- **Visualization**: Same Grafana dashboards (for direct comparison)
-
-**Data Flow**: Go App → Prometheus client → Prometheus → Mimir → Grafana
+- `otel-loki-tempo-mimir-grafana`: earlier full observability branch (historically used Zerolog + Promtail for logs)
+- `otel-loki-tempo-mimir-grafana-no-promtail`: variant branch for log-pipeline experimentation
+- `otel-promtail-loki-tempo-mimir-grafana`: explicit Promtail-based logs branch
+- `otel-tempo-mimir-grafana`: OpenTelemetry metrics + traces only (no logs pipeline)
+- `otel-mimir-grafana`: metrics-focused OpenTelemetry branch
+- `prometheus-and-mimir`: traditional Prometheus instrumentation branch
 
 ## Setup
 
@@ -191,7 +161,7 @@ All components automatically share context:
 
 ## Architecture
 
-### OpenTelemetry Stack with Loki, Tempo, Mimir, and Grafana (otel-loki-tempo-mimir-grafana branch)
+### OpenTelemetry Stack with Loki, Tempo, Mimir, and Grafana (main branch)
 
 #### Metrics Flow
 
