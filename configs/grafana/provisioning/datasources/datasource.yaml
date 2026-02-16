@@ -21,8 +21,8 @@ datasources:
     jsonData:
       tracesToLogs:
         datasourceUid: loki
-        tags: ["service", "job"] 
-        mappedTags: [{ key: "service.name", value: "service" }]
+        tags: ["service_name"]
+        mappedTags: [{ key: "service.name", value: "service_name" }]
         mapTagNamesEnabled: true
         spanStartTimeShift: "-5m"
         spanEndTimeShift: "5m"
@@ -47,6 +47,6 @@ datasources:
       maxLines: 1000
       derivedFields:
         - datasourceUid: tempo
-          matcherRegex: "trace_id[=:](\\w+)"
+          matcherRegex: "(?:trace_id=|\"trace_id\":\")([0-9a-f]{32})"
           name: TraceID
           url: $${__value.raw}

@@ -32,7 +32,7 @@ This repository demonstrates a modern approach to instrumenting Go applications 
 
 - **Metrics**: Go App → OTel SDK → OTel Collector → Mimir → Grafana
 - **Traces**: Go App → OTel SDK → OTel Collector → Tempo → Grafana
-- **Logs**: Go App → Zerolog → Promtail → Loki → Grafana
+- **Logs**: Go App → slog/OTel Log SDK → OTel Collector → Loki → Grafana
 
 ### otel-tempo-mimir-grafana
 
@@ -155,7 +155,7 @@ All components automatically share context:
 
 - `/go-app/metrics` - Metrics instrumentation code
 - `/go-app/tracing` - Tracing instrumentation code
-- `/go-app/logging` - Logging instrumentation with zerolog
+- `/go-app/logging` - Logging instrumentation with slog + OpenTelemetry logs bridge
 - `/go-app/handlers` - HTTP handlers with observability
 
 ### Configuration
@@ -164,7 +164,6 @@ All components automatically share context:
   - `/configs/grafana` - Grafana configuration and dashboards
     - `/configs/grafana/provisioning` - Datasources and dashboards
   - `/configs/loki` - Loki log aggregation configuration
-  - `/configs/promtail` - Promtail log collection configuration
   - `/configs/mimir` - Mimir metrics configuration
   - `/configs/tempo` - Tempo tracing configuration
   - `/configs/otel-collector` - OpenTelemetry Collector configuration
@@ -192,7 +191,7 @@ All components automatically share context:
 
 ## Architecture
 
-### OpenTelemetry Stack with Loki, Promtail, Tempo, Mimir, and Grafana (otel-loki-tempo-mimir-grafana branch)
+### OpenTelemetry Stack with Loki, Tempo, Mimir, and Grafana (otel-loki-tempo-mimir-grafana branch)
 
 #### Metrics Flow
 
@@ -219,7 +218,7 @@ All components automatically share context:
 ```
 ┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
 │            │    │                 │    │                  │    │         │
-│  Go App    ├───►│  Promtail       ├─── │  Grafana Loki    ├───►│ Grafana │
+│  Go App    ├───►│  OTel Collector ├─── │  Grafana Loki    ├───►│ Grafana │
 │ (OTel SDK) │    │                 │    │                  │    │         │
 └────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
@@ -249,7 +248,6 @@ All components automatically share context:
 - **docker-compose.yml**: Docker Compose configuration
 - **otel-collector-config.yaml**: OpenTelemetry Collector configuration
 - **configs/loki/loki-config.yml**: Loki configuration
-- **configs/promtail/config.yml**: Promtail configuration for log collection
 - **mimir-config.yaml**: Mimir configuration
 - **grafana/provisioning/**: Grafana provisioning files
 - **hit-loop.sh**: Script to generate traffic

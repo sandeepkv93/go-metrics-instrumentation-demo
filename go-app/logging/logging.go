@@ -3,142 +3,203 @@ package logging
 import (
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
 	"os"
-	"time"
+	"sync"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel/attribute"
+	otlploggrpc "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/trace"
 )
 
-// LogProvider encapsulates logging setup
+// LogProvider encapsulates logging setup.
 type LogProvider struct {
-	logger zerolog.Logger
+	logger   *slog.Logger
+	provider *sdklog.LoggerProvider
 }
 
-// Config holds configuration for logging setup
+// Config holds configuration for logging setup.
 type Config struct {
-	ServiceName      string
-	LogLevel         string
-	LogFilePath      string
-	ConsoleLoggingOn bool
-	JSONFormatting   bool
+	ServiceName       string
+	LogLevel          string
+	CollectorEndpoint string
+	OTLPInsecure      bool
+	OTELLogsEnabled   bool
 }
 
-// DefaultConfig provides sensible defaults
+// DefaultConfig provides sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		ServiceName:      "demo-service",
-		LogLevel:         "info",
-		LogFilePath:      "/var/log/go-app/app.log",
-		ConsoleLoggingOn: true,
-		JSONFormatting:   true,
+		ServiceName:       "demo-service",
+		LogLevel:          "info",
+		CollectorEndpoint: "otel-collector:7317",
+		OTLPInsecure:      true,
+		OTELLogsEnabled:   true,
 	}
 }
 
-// NewLogProvider initializes the logging system
-func NewLogProvider(cfg Config) (*LogProvider, error) {
-	// Create log directory if it doesn't exist
-	logDir := "/var/log/go-app"
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create log directory: %w", err)
-	}
+type multiHandler struct {
+	handlers []slog.Handler
+}
 
-	// Create or open log file
-	logFile, err := os.OpenFile(cfg.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
-	}
+type traceContextHandler struct {
+	next slog.Handler
+}
 
-	// Set global level
-	level, err := zerolog.ParseLevel(cfg.LogLevel)
-	if err != nil {
-		level = zerolog.InfoLevel
-	}
-	zerolog.SetGlobalLevel(level)
-
-	// Configure timestamp format
-	zerolog.TimeFieldFormat = time.RFC3339
-
-	// Configure output (file, console, or both)
-	var writers []io.Writer
-	writers = append(writers, logFile)
-
-	if cfg.ConsoleLoggingOn {
-		if cfg.JSONFormatting {
-			writers = append(writers, os.Stdout)
-		} else {
-			// Use console writer for pretty output during development
-			consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-			writers = append(writers, consoleWriter)
+func (h *multiHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	for _, handler := range h.handlers {
+		if handler.Enabled(ctx, level) {
+			return true
 		}
 	}
-
-	// Create multi-writer
-	multiWriter := zerolog.MultiLevelWriter(writers...)
-
-	// Create logger with service context
-	logger := zerolog.New(multiWriter).
-		With().
-		Timestamp().
-		Str("service", cfg.ServiceName).
-		Logger()
-
-	// Set as default logger
-	log.Logger = logger
-
-	fmt.Println("Logging provider initialized successfully")
-	return &LogProvider{
-		logger: logger,
-	}, nil
+	return false
 }
 
-// Logger returns the zerolog logger
-func (lp *LogProvider) Logger() zerolog.Logger {
-	return lp.logger
-}
-
-// ContextLogger returns a logger with context values
-func (lp *LogProvider) ContextLogger(ctx context.Context) zerolog.Logger {
-	traceID := TraceIDFromContext(ctx)
-	spanID := SpanIDFromContext(ctx)
-
-	logger := lp.logger
-
-	// Add trace context if available
-	if traceID != "" {
-		// IMPORTANT: Use "trace_id" exactly as this is what Grafana expects
-		logger = logger.With().
-			Str("trace_id", traceID).
-			Str("span_id", spanID).
-			Logger()
+func (h *multiHandler) Handle(ctx context.Context, r slog.Record) error {
+	for _, handler := range h.handlers {
+		if err := handler.Handle(ctx, r); err != nil {
+			return err
+		}
 	}
-
-	return logger
-}
-
-// ShutDown properly flushes and closes log resources
-func (lp *LogProvider) Shutdown(ctx context.Context) error {
-	// No specific shutdown needed for zerolog
 	return nil
 }
 
-// SpanIDFromContext extracts span ID from OpenTelemetry context
-func SpanIDFromContext(ctx context.Context) string {
-	spanCtx := trace.SpanContextFromContext(ctx)
-	if !spanCtx.IsValid() {
-		return ""
+func (h *multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	next := make([]slog.Handler, 0, len(h.handlers))
+	for _, handler := range h.handlers {
+		next = append(next, handler.WithAttrs(attrs))
 	}
-	return spanCtx.SpanID().String()
+	return &multiHandler{handlers: next}
 }
 
-// TraceIDFromContext extracts trace ID from OpenTelemetry context
-func TraceIDFromContext(ctx context.Context) string {
-	spanCtx := trace.SpanContextFromContext(ctx)
-	if !spanCtx.IsValid() {
-		return ""
+func (h *multiHandler) WithGroup(name string) slog.Handler {
+	next := make([]slog.Handler, 0, len(h.handlers))
+	for _, handler := range h.handlers {
+		next = append(next, handler.WithGroup(name))
 	}
-	// Format exactly as Tempo expects - lowercase hex without dashes
-	return spanCtx.TraceID().String()
+	return &multiHandler{handlers: next}
+}
+
+func (h *traceContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.next.Enabled(ctx, level)
+}
+
+func (h *traceContextHandler) Handle(ctx context.Context, r slog.Record) error {
+	traceID := ""
+	spanID := ""
+	sc := trace.SpanContextFromContext(ctx)
+	if sc.IsValid() {
+		traceID = sc.TraceID().String()
+		spanID = sc.SpanID().String()
+	}
+	r.AddAttrs(
+		slog.String("trace_id", traceID),
+		slog.String("span_id", spanID),
+	)
+	return h.next.Handle(ctx, r)
+}
+
+func (h *traceContextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &traceContextHandler{next: h.next.WithAttrs(attrs)}
+}
+
+func (h *traceContextHandler) WithGroup(name string) slog.Handler {
+	return &traceContextHandler{next: h.next.WithGroup(name)}
+}
+
+var (
+	loggerMu     sync.RWMutex
+	globalLogger *slog.Logger
+)
+
+// NewLogProvider initializes logging with stdout JSON and optional OTLP export.
+func NewLogProvider(ctx context.Context, cfg Config) (*LogProvider, error) {
+	level := parseLogLevel(cfg.LogLevel)
+	stdout := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+
+	if !cfg.OTELLogsEnabled {
+		logger := slog.New(&traceContextHandler{next: stdout}).With("service", cfg.ServiceName)
+		loggerMu.Lock()
+		globalLogger = logger
+		loggerMu.Unlock()
+		slog.SetDefault(logger)
+		logger.Info("logging initialized", "otlp_logs_enabled", false)
+		return &LogProvider{logger: logger}, nil
+	}
+
+	opts := []otlploggrpc.Option{otlploggrpc.WithEndpoint(cfg.CollectorEndpoint)}
+	if cfg.OTLPInsecure {
+		opts = append(opts, otlploggrpc.WithInsecure())
+	}
+	exporter, err := otlploggrpc.New(ctx, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("create otlp log exporter: %w", err)
+	}
+
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			attribute.String("service.name", cfg.ServiceName),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create logs resource: %w", err)
+	}
+
+	lp := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
+	)
+
+	otelHandler := otelslog.NewHandler(cfg.ServiceName, otelslog.WithLoggerProvider(lp))
+	logger := slog.New(&traceContextHandler{next: &multiHandler{handlers: []slog.Handler{stdout, otelHandler}}}).With("service", cfg.ServiceName)
+
+	loggerMu.Lock()
+	globalLogger = logger
+	loggerMu.Unlock()
+	slog.SetDefault(logger)
+
+	logger.Info("logging initialized", "otlp_logs_enabled", true, "collector_endpoint", cfg.CollectorEndpoint)
+	return &LogProvider{logger: logger, provider: lp}, nil
+}
+
+// Logger returns the slog logger.
+func (lp *LogProvider) Logger() *slog.Logger {
+	if lp != nil && lp.logger != nil {
+		return lp.logger
+	}
+	loggerMu.RLock()
+	defer loggerMu.RUnlock()
+	if globalLogger != nil {
+		return globalLogger
+	}
+	return slog.Default()
+}
+
+// ContextLogger returns logger instance. Trace/span enrichment happens at emit time via context.
+func (lp *LogProvider) ContextLogger(ctx context.Context) *slog.Logger {
+	return lp.Logger()
+}
+
+// Shutdown flushes OTLP log resources.
+func (lp *LogProvider) Shutdown(ctx context.Context) error {
+	if lp == nil || lp.provider == nil {
+		return nil
+	}
+	return lp.provider.Shutdown(ctx)
+}
+
+func parseLogLevel(v string) slog.Level {
+	switch v {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }

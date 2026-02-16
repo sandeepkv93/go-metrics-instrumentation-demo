@@ -23,6 +23,8 @@ exporters:
     endpoint: "tempo:9411"  # Changed from 4317 to 9411
     tls:
       insecure: true
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp"
 
 service:
   pipelines:
@@ -34,6 +36,10 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/tempo, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki, debug]
   telemetry:
     logs:
       level: "debug"
