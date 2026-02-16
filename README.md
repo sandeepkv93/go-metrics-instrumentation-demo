@@ -161,56 +161,123 @@ All components automatically share context:
 
 ## Architecture
 
-### OpenTelemetry Stack with Loki, Tempo, Mimir, and Grafana (main branch)
+### main (default)
 
 #### Metrics Flow
-
-```
-┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
-│            │    │                 │    │                  │    │         │
-│  Go App    ├───►│  OTel Collector ├─── │  Grafana Mimir   ├───►│ Grafana │
-│ (OTel SDK) │    │                 │    │                  │    │         │
-└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
 ```
 
 #### Traces Flow
-
-```
-┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
-│            │    │                 │    │                  │    │         │
-│  Go App    ├───►│  OTel Collector ├─── │  Grafana Tempo   ├───►│ Grafana │
-│ (OTel SDK) │    │                 │    │                  │    │         │
-└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
 ```
 
 #### Logs Flow
-
-```
-┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
-│            │    │                 │    │                  │    │         │
-│  Go App    ├───►│  OTel Collector ├─── │  Grafana Loki    ├───►│ Grafana │
-│ (OTel SDK) │    │                 │    │                  │    │         │
-└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+```text
+Go App (slog + OTel Log SDK) -> OTel Collector -> Grafana Loki -> Grafana
 ```
 
-### OpenTelemetry Stack with Mimir, Tempo, and Grafana (otel-tempo-mimir-grafana branch)
+### otel-loki-tempo-mimir-grafana
 
-```
-┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
-│            │    │                 │    │                  │    │         │
-│  Go App    ├───►│  OTel Collector ├─── │  Grafana Mimir   ├───►│ Grafana │
-│ (OTel SDK) │    │                 │    │                  │    │         │
-└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
+#### Metrics Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
 ```
 
-### Prometheus Stack (prometheus-and-mimir branch)
-
+#### Traces Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
 ```
-┌─────────────┐    ┌─────────────┐    ┌──────────────────┐    ┌─────────┐
-│             │    │             │    │                  │    │         │
-│  Go App     │◄───┤  Prometheus ├───►│  Grafana Mimir   ├───►│ Grafana │
-│(Prom client)│    │             │    │                  │    │         │
-└─────────────┘    └─────────────┘    └──────────────────┘    └─────────┘
+
+#### Logs Flow
+```text
+Go App (Zerolog) -> Promtail -> Grafana Loki -> Grafana
+```
+
+### otel-loki-tempo-mimir-grafana-no-promtail
+
+#### Metrics Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+```
+
+#### Traces Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+```
+
+#### Logs Flow
+```text
+Go App (file logs) -> OTel Collector (filelog receiver) -> Grafana Loki -> Grafana
+```
+
+### otel-promtail-loki-tempo-mimir-grafana
+
+#### Metrics Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+```
+
+#### Traces Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+```
+
+#### Logs Flow
+```text
+Go App (Zerolog) -> Promtail -> Grafana Loki -> Grafana
+```
+
+### otel-tempo-mimir-grafana
+
+#### Metrics Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+```
+
+#### Traces Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+```
+
+#### Logs Flow
+```text
+Not part of this branch's stack.
+```
+
+### otel-mimir-grafana
+
+#### Metrics Flow
+```text
+Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+```
+
+#### Traces Flow
+```text
+Not part of this branch's stack.
+```
+
+#### Logs Flow
+```text
+Not part of this branch's stack.
+```
+
+### prometheus-and-mimir
+
+#### Metrics Flow
+```text
+Go App (Prometheus client) -> OTel Collector (Prometheus receiver) -> Grafana Mimir -> Grafana
+```
+
+#### Traces Flow
+```text
+Not part of this branch's stack.
+```
+
+#### Logs Flow
+```text
+Not part of this branch's stack.
 ```
 
 ## Configuration Files
