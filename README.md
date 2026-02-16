@@ -4,16 +4,9 @@
 
 ## Overview
 
-This repository demonstrates a modern approach to instrumenting Go applications with logs, metrics and traces using OpenTelemetry, showing how to implement a complete observability stack with minimal code changes.
+This repository demonstrates practical Go observability using OpenTelemetry for metrics, traces, and logs. It includes a runnable local stack so you can generate traffic and inspect all telemetry signals end to end in Grafana.
 
-## Features
-
-- Complete working examples of logs, metrics and tracing instrumentation
-- Docker Compose setup for quick deployment
-- Pre-configured Grafana dashboards
-- Request count and latency histogram metrics
-- Distributed tracing with detailed span information
-- Correlation between metrics, traces and logs in a single UI
+The `main` branch focuses on an OTel-native log path (`slog` + OTel Logs SDK -> OTel Collector -> Loki), alongside trace and metric export through the collector to Tempo and Mimir. The repo also keeps alternative branches for Prometheus-first and older Promtail-based flows so you can compare architectures directly.
 
 ## Branches
 
@@ -165,80 +158,136 @@ All components automatically share context:
 
 #### Metrics Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Tempo   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Logs Flow
 ```text
-Go App (slog + OTel Log SDK) -> OTel Collector -> Grafana Loki -> Grafana
+┌───────────────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│                       │    │                 │    │                  │    │         │
+│  Go App               ├───►│  OTel Collector ├───►│  Grafana Loki    ├───►│ Grafana │
+│ (slog + OTel Log SDK) │    │                 │    │                  │    │         │
+└───────────────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 ### otel-loki-tempo-mimir-grafana
 
 #### Metrics Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Tempo   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Logs Flow
 ```text
-Go App (Zerolog) -> Promtail -> Grafana Loki -> Grafana
+┌────────────┐    ┌────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │            │    │                  │    │         │
+│  Go App    ├───►│  Promtail  ├───►│  Grafana Loki    ├───►│ Grafana │
+│ (Zerolog)  │    │            │    │                  │    │         │
+└────────────┘    └────────────┘    └──────────────────┘    └─────────┘
 ```
 
 ### otel-loki-tempo-mimir-grafana-no-promtail
 
 #### Metrics Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Tempo   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Logs Flow
 ```text
-Go App (file logs) -> OTel Collector (filelog receiver) -> Grafana Loki -> Grafana
+┌───────────────┐    ┌─────────────────────────────┐    ┌──────────────────┐    ┌─────────┐
+│               │    │                             │    │                  │    │         │
+│  Go App       ├───►│  OTel Collector             ├───►│  Grafana Loki    ├───►│ Grafana │
+│ (file logs)   │    │  (filelog receiver)         │    │                  │    │         │
+└───────────────┘    └─────────────────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 ### otel-promtail-loki-tempo-mimir-grafana
 
 #### Metrics Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Tempo   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Logs Flow
 ```text
-Go App (Zerolog) -> Promtail -> Grafana Loki -> Grafana
+┌────────────┐    ┌────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │            │    │                  │    │         │
+│  Go App    ├───►│  Promtail  ├───►│  Grafana Loki    ├───►│ Grafana │
+│ (Zerolog)  │    │            │    │                  │    │         │
+└────────────┘    └────────────┘    └──────────────────┘    └─────────┘
 ```
 
 ### otel-tempo-mimir-grafana
 
 #### Metrics Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Tempo -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Tempo   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Logs Flow
@@ -250,7 +299,11 @@ Not part of this branch's stack.
 
 #### Metrics Flow
 ```text
-Go App (OTel SDK) -> OTel Collector -> Grafana Mimir -> Grafana
+┌────────────┐    ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐
+│            │    │                 │    │                  │    │         │
+│  Go App    ├───►│  OTel Collector ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (OTel SDK) │    │                 │    │                  │    │         │
+└────────────┘    └─────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
@@ -267,7 +320,11 @@ Not part of this branch's stack.
 
 #### Metrics Flow
 ```text
-Go App (Prometheus client) -> OTel Collector (Prometheus receiver) -> Grafana Mimir -> Grafana
+┌───────────────────────┐    ┌─────────────────────────────┐    ┌──────────────────┐    ┌─────────┐
+│                       │    │                             │    │                  │    │         │
+│  Go App               ├───►│  OTel Collector             ├───►│  Grafana Mimir   ├───►│ Grafana │
+│ (Prometheus client)   │    │  (Prometheus receiver)      │    │                  │    │         │
+└───────────────────────┘    └─────────────────────────────┘    └──────────────────┘    └─────────┘
 ```
 
 #### Traces Flow
