@@ -393,27 +393,6 @@ rate(demo_request_errors_total[1m])
 sum(rate(demo_requests_total[1m])) by (endpoint)
 ```
 
-## Why Two Approaches?
-
-- **OpenTelemetry**: Newer standard that provides a unified approach for metrics, traces, and logs
-- **Prometheus**: Well-established standard for metrics with a large ecosystem
-- **Comparison**: Helps you decide which approach fits your needs better
-
-## Switching Branches
-
-To switch between the two implementations:
-
-```bash
-# Stop the current stack
-docker-compose down
-
-# Switch branch
-git checkout prometheus-and-mimir  # or otel-mimir-grafana
-
-# Start the stack again
-docker-compose up -d
-```
-
 ## Troubleshooting
 
 ### Common Issues
